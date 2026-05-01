@@ -1,0 +1,18 @@
+# File sensitif - JANGAN diupload ke GitHub
+.env
+.env.production
+.env.*
+
+# Script utilitas sementara
+downgrade.php
+
+# Data alumni - tidak perlu diupload ke repo jika pakai database
+data.csv
+
+# Folder SQL - hanya untuk setup lokal
+sql/
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/

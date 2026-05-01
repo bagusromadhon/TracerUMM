@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Tracer Alumni UMM</title>
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Data Processing & Charts -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.papaparse.com/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Leaflet.js for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/styles.css?v=5">
+</head>
+
+<body>
+
+    <!-- LOGIN OVERLAY -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div style="margin-bottom: 2rem;">
+                <div
+                    style="width: 64px; height: 64px; border-radius: 12px; background: var(--primary-light); color: var(--primary-color); display: inline-flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <h1 style="font-size: 1.25rem;">Tracer Study UMM</h1>
+                <p style="color: var(--text-light); font-size: 0.85rem;">Sistem Administrasi Data Alumni</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label>ID Admin</label>
+                    <input class="input-field" id="usernameInput" name="username" type="text" value="admin" required
+                        autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Kata Sandi</label>
+                    <input class="input-field" id="passwordInput" name="password" type="password" value="password"
+                        required autocomplete="current-password">
+                </div>
+                <div id="loginError" class="error-box hidden">Kredensial tidak valid.</div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.75rem;">Akses
+                    Sistem</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="mainContent" class="app-container opacity-0">
+
+        <!-- LEFT SIDEBAR (Navigation & Filters) -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="brand-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+                <span style="font-weight: 700; font-size: 1.1rem; letter-spacing: -0.02em;">Tracer<span
+                        style="font-weight: 400; color: var(--text-light);">UMM</span></span>
+            </div>
+
+            <div class="sidebar-content custom-scrollbar">
+                <div style="margin-bottom: 2rem;">
+                    <h4
+                        style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem;">
+                        Menu Utama</h4>
+                    <button class="btn btn-primary"
+                        style="width: 100%; justify-content: flex-start; background: var(--primary-light); color: var(--primary-color);">
+                        <i class="fa-solid fa-database" style="width: 20px;"></i> Master Data Alumni
+                    </button>
+                    <button class="btn btn-outline"
+                        style="width: 100%; justify-content: flex-start; border-color: transparent; margin-top: 0.25rem;">
+                        <i class="fa-solid fa-chart-pie" style="width: 20px;"></i> Laporan Analitik
+                    </button>
+                </div>
+
+                <div>
+                    <h4
+                        style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                        Filter Lanjutan</h4>
+
+                    <div class="filter-group">
+                        <label>Status Data</label>
+                        <select id="statusFilter" class="input-field">
+                            <option value="">Semua Status</option>
+                            <option value="Tervalidasi">Tervalidasi</option>
+                            <option value="Perlu Divalidasi">Perlu Divalidasi</option>
+                            <option value="Data Abu-Abu">Pending (Abu-Abu)</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Fakultas</label>
+                        <select id="advFakultas" class="input-field">
+                            <option value="">Semua Fakultas</option>
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label>Tahun Lulus</label>
+                        <select id="advTahun" class="input-field">
+                            <option value="">Semua Tahun</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CENTER MAIN WRAPPER -->
+        <div class="main-wrapper">
+
+            <!-- TOP NAVBAR -->
+            <nav class="top-navbar">
+                <div class="search-box">
+                    <i class="fa-solid fa-search"></i>
+                    <input id="searchInput" type="text" class="input-field"
+                        placeholder="Pencarian Cepat (Nama, NIM)...">
+                    <button id="clearSearchBtn" class="hidden"
+                        style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-light);"><i
+                            class="fa-solid fa-xmark"></i></button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; text-align: right;">
+                        <div style="line-height: 1.2;">
+                            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Admin Pusat</div>
+                            <div style="font-size: 0.7rem; color: var(--text-light);">emerald@alumni.ac.id</div>
+                        </div>
+                        <div
+                            style="width: 32px; height: 32px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 14px; color: var(--text-main);">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                    </div>
+                    <button id="logoutBtn" class="btn btn-outline" style="border: none; color: var(--text-light);">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </nav>
+
+            <!-- MAIN CONTENT AREA -->
+            <div class="main-content custom-scrollbar">
+
+                <!-- DASHBOARD INFO BANNER -->
+                <div
+                    style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%); border-radius: var(--border-radius); padding: 2rem; color: white; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 15px rgba(138, 21, 56, 0.15);">
+                    <div style="max-width: 70%;">
+                        <h2
+                            style="font-size: 1.5rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fa-solid fa-chart-network" style="color: var(--status-warning);"></i>
+                            Pusat Kendali Data Lulusan
+                        </h2>
+                        <p style="font-size: 0.9rem; line-height: 1.5; color: rgba(255,255,255,0.9);">
+                            Sistem ini dirancang untuk memantau, memvalidasi, dan melacak rekam jejak karir seluruh
+                            alumni. Anda dapat menggunakan filter di sebelah kiri untuk mencari data spesifik, atau klik
+                            pada nama alumni di tabel untuk melihat dan memvalidasi riwayat pekerjaan mereka secara
+                            langsung.
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div
+                            style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.7); margin-bottom: 0.25rem;">
+                            Total Rekam Jejak</div>
+                        <div style="font-size: 2.5rem; font-weight: 700; color: var(--status-warning); line-height: 1;">
+                            140K+</div>
+                    </div>
+                </div>
+
+                <!-- MINI STATS BAR -->
+                <div class="mini-stats-container">
+                    <div class="mini-stat valid">
+                        <div class="icon"><i class="fa-solid fa-shield-check"></i></div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase;">
+                                Tervalidasi</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);" id="statValid">0
+                            </div>
+                            <div style="font-size: 0.65rem; color: #10b981; margin-top: 2px;">Data Tervalidasi</div>
+                        </div>
+                    </div>
+                    <div class="mini-stat warning">
+                        <div class="icon"><i class="fa-solid fa-clock"></i></div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase;">Perlu
+                                Validasi</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);"
+                                id="statNeedValidation">0</div>
+                            <div style="font-size: 0.65rem; color: #d97706; margin-top: 2px;">Data Perlu Validasi Admin
+                                (Manual)</div>
+                        </div>
+                    </div>
+                    <div class="mini-stat">
+                        <div class="icon"><i class="fa-solid fa-spinner"></i></div>
+                        <div>
+                            <div style="font-size: 0.75rem; color: var(--text-light); text-transform: uppercase;">Data
+                                Abu-Abu</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-main);"
+                                id="statProcessing">0</div>
+                            <div style="font-size: 0.65rem; color: #64748b; margin-top: 2px;">Data Kasaran , yang proses
+                                mencari nya masih di bawah 50%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ANALYTICS REPORT - Full Grid -->
+                <div style="margin-bottom: 1.5rem;">
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                        <h3
+                            style="font-size: 1rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem; font-weight: 700;">
+                            <i class="fa-solid fa-chart-mixed" style="color: var(--primary-color);"></i> Pusat Analitik
+                            Data Alumni
+                        </h3>
+                        <span style="font-size: 0.75rem; color: var(--text-light);">Data diperbarui otomatis setiap kali
+                            filter berubah</span>
+                    </div>
+
+                    <!-- ROW 1: Status Bar + Map -->
+                    <div style="display: grid; grid-template-columns: 1fr 1.6fr; gap: 1rem; margin-bottom: 1rem;">
+                        <!-- Chart 1: Stacked Bar - Status Overview -->
+                        <div class="table-container" style="padding: 1.25rem;">
+                            <div
+                                style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); margin-bottom: 0.75rem; letter-spacing: 0.05em;">
+                                <i class="fa-solid fa-bars-progress" style="color: var(--primary-color);"></i> Ringkasan
+                                Status Data
+                            </div>
+                            <div style="height: 160px; position: relative;">
+                                <canvas id="alumniStatsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 4: Doughnut - Top Jabatan -->
+                        <div class="table-container" style="padding: 1.25rem;">
+                            <div
+                                style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); margin-bottom: 0.75rem; letter-spacing: 0.05em;">
+                                <i class="fa-solid fa-user-tie" style="color: var(--primary-color);"></i> Top Profesi /
+                                Jabatan
+                            </div>
+                            <div style="height: 160px; position: relative; display: flex; justify-content: center;">
+                                <canvas id="chartJabatan"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ROW 2: Bar per Fakultas + Line Trend -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <!-- Chart 2: Horizontal Bar - Per Fakultas -->
+                        <div class="table-container" style="padding: 1.25rem;">
+                            <div
+                                style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); margin-bottom: 0.75rem; letter-spacing: 0.05em;">
+                                <i class="fa-solid fa-building-columns" style="color: #0ea5e9;"></i> Alumni per Fakultas
+                            </div>
+                            <div style="height: 180px; position: relative;">
+                                <canvas id="chartFakultas"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 3: Line - Tren Lulusan per Tahun -->
+                        <div class="table-container" style="padding: 1.25rem;">
+                            <div
+                                style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-light); margin-bottom: 0.75rem; letter-spacing: 0.05em;">
+                                <i class="fa-solid fa-chart-line" style="color: #10b981;"></i> Tren Lulusan per Tahun
+                            </div>
+                            <div style="height: 180px; position: relative;">
+                                <canvas id="chartTrend"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dataLoader"
+                    style="font-size: 0.8rem; color: var(--primary-color); padding: 0.5rem 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-circle-notch fa-spin"></i> <span id="loaderText">Mengambil sinkronisasi
+                        data...</span>
+                </div>
+
+                <!-- DENSE TABLE -->
+                <div class="table-container">
+                    <div style="overflow-x: auto;">
+                        <table id="alumniTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30px;"><input type="checkbox" id="selectAllCheckbox"
+                                            class="custom-checkbox"></th>
+                                    <th>NIM</th>
+                                    <th>Nama Alumni</th>
+                                    <th>Program Studi</th>
+                                    <th>Tahun Lulus</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Rows injected by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination">
+                        <div style="font-size: 0.75rem; color: var(--text-light);">
+                            Menampilkan <span id="pageInfo" style="font-weight: 600; color: var(--text-main);">0-0 dari
+                                0</span> data
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button id="btnPrevPage" class="btn btn-outline btn-icon" style="padding: 0.2rem 0.5rem;"><i
+                                    class="fa-solid fa-chevron-left"></i></button>
+                            <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-main);">
+                                Hal <span id="currentPageNum">1</span>/<span id="totalPagesNum">1</span>
+                            </div>
+                            <button id="btnNextPage" class="btn btn-outline btn-icon" style="padding: 0.2rem 0.5rem;"><i
+                                    class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SLIDE-OUT DRAWER (Revamped - Full Data View) -->
+        <aside id="rightDrawer" class="right-drawer">
+            <!-- DRAWER HEADER with Avatar -->
+            <div class="drawer-header"
+                style="background: linear-gradient(135deg, var(--primary-color) 0%, #6b1028 100%); color: white; border: none; padding: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+                    <div id="drawerAvatar"
+                        style="width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 700; color: white; flex-shrink: 0;">
+                        ?</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <h3 style="font-size: 1rem; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                            id="modalNama">Pilih Data</h3>
+                        <p style="font-size: 0.75rem; color: rgba(255,255,255,0.7); font-family: monospace;"
+                            id="modalNIM">-</p>
+                        <div id="drawerStatusBadge" style="margin-top: 0.4rem;"></div>
+                    </div>
+                    <button id="closeDrawerBtn"
+                        style="background: rgba(255,255,255,0.15); border: none; width: 32px; height: 32px; border-radius: 50%; color: white; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <!-- Kelengkapan Data Progress Bar -->
+                <div style="margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+                        <span style="font-size: 0.7rem; color: rgba(255,255,255,0.7);">Kelengkapan Data</span>
+                        <span style="font-size: 0.7rem; font-weight: 700; color: #F2A900;"
+                            id="drawerCompleteness">0%</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.2); border-radius: 10px; height: 6px; overflow: hidden;">
+                        <div id="drawerCompletenessBar"
+                            style="height: 100%; background: #F2A900; border-radius: 10px; width: 0%; transition: width 0.5s ease;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DRAWER BODY - All Columns Dynamically Rendered -->
+            <div class="drawer-body custom-scrollbar" id="drawerBody">
+                <!-- JS will populate this -->
+            </div>
+
+            <div class="drawer-footer">
+                <div id="validateBtnPlaceholder"
+                    style="display: none; width: 100%; text-align: center; padding: 0.5rem; font-size: 0.8rem; color: var(--status-valid); font-weight: 600;">
+                    <i class="fa-solid fa-shield-check"></i> Data Telah Tervalidasi
+                </div>
+                <button id="validateBtn" class="btn btn-primary" style="width: 100%;">
+                    <i class="fa-solid fa-shield-check"></i> Validasi Data Ini
+                </button>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- DRAWER BACKDROP OVERLAY -->
+    <div id="drawerBackdrop"
+        style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:9998; backdrop-filter:blur(2px); transition:opacity 0.3s;">
+    </div>
+
+    <!-- FLOATING BULK ACTION BAR -->
+    <div id="bulkActionBar" class="floating-action-bar">
+        <div style="font-weight: 500; font-size: 0.9rem;">
+            <span id="selectedCount"
+                style="background: var(--primary-color); padding: 2px 8px; border-radius: 12px; font-weight: 700; margin-right: 4px;">0</span>
+            Terpilih
+        </div>
+        <button id="bulkValidateBtn" class="btn"
+            style="background: white; color: var(--primary-color); font-weight: 600;">
+            <i class="fa-solid fa-check-double"></i> Validasi Massal
+        </button>
+        <button id="bulkCancelBtn" class="btn" style="background: transparent; color: #cbd5e1;">Batal</button>
+    </div>
+
+    <!-- NATIVE CONTEXT MENU -->
+    <div id="customContextMenu" class="custom-context-menu">
+        <div class="context-menu-item" id="ctx-validate">
+            <i class="fa-solid fa-check-circle"></i> Validasi Kilat
+        </div>
+        <div class="context-menu-item" id="ctx-detail">
+            <i class="fa-solid fa-eye"></i> Lihat Detail Penuh
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" id="ctx-copy-nim">
+            <i class="fa-regular fa-copy"></i> Salin NIM
+        </div>
+        <div class="context-menu-item" id="ctx-copy-email">
+            <i class="fa-regular fa-envelope"></i> Salin Email
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/app-ergo.js"></script>
+</body>
+
+</html>
