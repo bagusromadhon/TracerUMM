@@ -77,8 +77,6 @@ Dasbor admin memungkinkan pengelola untuk memantau, mencari, dan memvalidasi rek
  ┣ 📂 js/
  ┃ ┣ 📜 config.js           ← Konfigurasi global (kolom, status, URL API)
  ┃ ┣ 📜 utils.js            ← Fungsi utilitas (escapeHTML, format, hash)
- ┃ ┣ 📜 app-ergo.js         ← Logika utama dasbor & hybrid engine
- ┃ ┗ 📜 app.js              ← Logika pendukung (filter, paginasi)
  ┣ 📜 index.html            ← Halaman utama dasbor
  ┣ 📜 .env                  ← Konfigurasi rahasia (JANGAN di-commit!)
  ┣ 📜 .env.production       ← Template konfigurasi hosting
